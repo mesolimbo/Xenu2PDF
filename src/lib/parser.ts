@@ -26,15 +26,28 @@ export function filterByStatusCode(records: XenuRecord[], statusCode: string = '
   return records.filter(r => r.LinkToPageStatusCode === statusCode);
 }
 
-export function extractUniqueOriginPages(records: XenuRecord[]): string[] {
-  const urls = [...new Set(records.map(r => r.OriginPage))].filter(Boolean);
-  // Sort URLs alphabetically for consistent ordering
-  return urls.sort();
+export function extractUniquePages(records: XenuRecord[]): string[] {
+  const seen = new Set<string>();
+  const urls: string[] = [];
+
+  for (const record of records) {
+    const title = record.LinkToPageTitle;
+    const url = record.LinkToPage;
+
+    // Use title to determine uniqueness, but collect the URL
+    if (title && url && !seen.has(title)) {
+      seen.add(title);
+      urls.push(url);
+    }
+  }
+
+  // Return URLs in order of first occurrence (no sorting)
+  return urls;
 }
 
 export function parseXenuFile(content: string): string[] {
   const records = parseXenuContent(content);
   const successfulRecords = filterByStatusCode(records, '200');
-  const urls = extractUniqueOriginPages(successfulRecords);
+  const urls = extractUniquePages(successfulRecords);
   return urls;
 }

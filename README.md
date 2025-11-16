@@ -23,13 +23,14 @@ npm start .tmp/phaser-docs.csv
 ```
 
 This will:
-1. Parse the Xenu CSV file
+1. Parse the Xenu TSV file
 2. Filter records to only include those with `LinkToPageStatusCode` of 200
-3. Extract unique URLs from the `OriginPage` column and sort them alphabetically
-4. Visit each URL using Playwright (headless Chromium)
-5. Scroll through each page to load all content (handles lazy loading)
-6. Save each page as a PDF
-7. Merge all PDFs into a single file
+3. Extract unique URLs from the `LinkToPage` column (using `LinkToPageTitle` for uniqueness)
+4. Preserve the original order (no sorting)
+5. Visit each URL using Playwright (headless Chromium)
+6. Scroll through each page to load all content (handles lazy loading)
+7. Save each page as a PDF
+8. Merge all PDFs into a single file
 
 ### Output
 

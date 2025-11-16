@@ -2,7 +2,7 @@ import { describe, it, expect } from '@jest/globals';
 import {
   parseXenuContent,
   filterByStatusCode,
-  extractUniqueOriginPages,
+  extractUniquePages,
   parseXenuFile,
   XenuRecord,
 } from '../lib/parser';
@@ -87,43 +87,43 @@ https://example.com/page2\thttps://example.com/link2\t200\tok\t"Quoted Title"\t\
     });
   });
 
-  describe('extractUniqueOriginPages', () => {
+  describe('extractUniquePages', () => {
     let records: XenuRecord[];
 
     beforeEach(() => {
       records = parseXenuContent(sampleXenuContent);
     });
 
-    it('should extract unique origin pages', () => {
-      const urls = extractUniqueOriginPages(records);
+    it('should extract unique pages by LinkToPageTitle', () => {
+      const urls = extractUniquePages(records);
 
-      expect(urls).toHaveLength(3);
+      // Should have 5 unique titles, extracting their LinkToPage URLs
+      expect(urls).toHaveLength(5);
       expect(urls).toEqual([
-        'https://example.com/page1',
-        'https://example.com/page2',
-        'https://example.com/page3',
+        'https://example.com/link1',
+        'https://example.com/link2',
+        'https://example.com/link3',
+        'https://example.com/link4',
+        'https://example.com/link5',
       ]);
     });
 
-    it('should sort URLs alphabetically', () => {
-      const urls = extractUniqueOriginPages(records);
+    it('should preserve order of first occurrence', () => {
+      const testContent = `OriginPage\tLinkToPage\tLinkToPageStatusCode\tLinkToPageStatusText\tLinkToPageTitle\tOriginPageDate\tOriginPageTitle
+https://example.com/p1\thttps://example.com/link-a\t200\tok\tTitle A\t\tPage 1
+https://example.com/p2\thttps://example.com/link-b\t200\tok\tTitle B\t\tPage 2
+https://example.com/p3\thttps://example.com/link-c\t200\tok\tTitle A\t\tPage 3
+https://example.com/p4\thttps://example.com/link-d\t200\tok\tTitle C\t\tPage 4`;
 
-      // URLs should be sorted alphabetically
-      expect(urls[0]).toBe('https://example.com/page1');
-      expect(urls[1]).toBe('https://example.com/page2');
-      expect(urls[2]).toBe('https://example.com/page3');
+      const testRecords = parseXenuContent(testContent);
+      const urls = extractUniquePages(testRecords);
 
-      // Verify actual sorting behavior with different order
-      const unsortedRecords = [
-        { ...records[0], OriginPage: 'https://example.com/zebra' },
-        { ...records[1], OriginPage: 'https://example.com/alpha' },
-        { ...records[2], OriginPage: 'https://example.com/beta' },
-      ];
-      const sortedUrls = extractUniqueOriginPages(unsortedRecords);
-      expect(sortedUrls).toEqual([
-        'https://example.com/alpha',
-        'https://example.com/beta',
-        'https://example.com/zebra',
+      // Should only include first occurrence of "Title A"
+      expect(urls).toHaveLength(3);
+      expect(urls).toEqual([
+        'https://example.com/link-a', // First "Title A"
+        'https://example.com/link-b', // "Title B"
+        'https://example.com/link-d', // "Title C"
       ]);
     });
 
@@ -131,19 +131,29 @@ https://example.com/page2\thttps://example.com/link2\t200\tok\t"Quoted Title"\t\
       const recordsWithEmpty: XenuRecord[] = [
         ...records,
         {
-          OriginPage: '',
-          LinkToPage: 'https://example.com/link6',
+          OriginPage: 'https://example.com/page6',
+          LinkToPage: '',
           LinkToPageStatusCode: '200',
           LinkToPageStatusText: 'ok',
-          LinkToPageTitle: 'Link 6',
+          LinkToPageTitle: 'Empty Link',
+          OriginPageDate: '',
+          OriginPageTitle: '',
+        },
+        {
+          OriginPage: 'https://example.com/page7',
+          LinkToPage: 'https://example.com/link7',
+          LinkToPageStatusCode: '200',
+          LinkToPageStatusText: 'ok',
+          LinkToPageTitle: '',
           OriginPageDate: '',
           OriginPageTitle: '',
         },
       ];
 
-      const urls = extractUniqueOriginPages(recordsWithEmpty);
+      const urls = extractUniquePages(recordsWithEmpty);
 
-      expect(urls).toHaveLength(3);
+      // Should only include records with both title and URL
+      expect(urls).toHaveLength(5);
       expect(urls).not.toContain('');
     });
   });
@@ -152,12 +162,13 @@ https://example.com/page2\thttps://example.com/link2\t200\tok\t"Quoted Title"\t\
     it('should parse, filter, and extract URLs correctly', () => {
       const urls = parseXenuFile(sampleXenuContent);
 
-      // Should filter to status 200 only, then extract unique origin pages
-      expect(urls).toHaveLength(3);
+      // Should filter to status 200 only, then extract unique pages by title
+      expect(urls).toHaveLength(4);
       expect(urls).toEqual([
-        'https://example.com/page1',
-        'https://example.com/page2',
-        'https://example.com/page3',
+        'https://example.com/link1',
+        'https://example.com/link2',
+        'https://example.com/link4',
+        'https://example.com/link5',
       ]);
     });
 
@@ -178,7 +189,7 @@ https://example.com/page1\thttps://example.com/link1\t200\tok\tLink 1\t\tPage 1`
       const urls = parseXenuFile(content);
 
       expect(urls).toHaveLength(1);
-      expect(urls[0]).toBe('https://example.com/page1');
+      expect(urls[0]).toBe('https://example.com/link1');
     });
   });
 });
