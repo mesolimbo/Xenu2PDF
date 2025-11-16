@@ -33,28 +33,30 @@ This will:
 2. Filter records to only include those with `LinkToPageStatusCode` of 200
 3. Extract unique URLs from the `LinkToPage` column (using `LinkToPageTitle` for uniqueness)
 4. Preserve the original order (no sorting)
-5. Visit each URL using Playwright (headless Chromium)
+5. Visit each URL using Playwright (headless Chromium) - processes 8 pages in parallel for performance
 6. Scroll through each page to load all content (handles lazy loading)
 7. Inject CSS to minimize whitespace and margins
 8. Generate PDF with selectable/copyable text
-9. Merge all PDFs into a single file
+9. Post-process to remove blank trailing pages
+10. Merge all PDFs into a single file
 
-**Note**: PDFs have selectable text. Very long pages may span multiple PDF pages due to browser engine limits (~14,400px). Viewport optimized (1200px width) to minimize blank pages.
+**Note**: PDFs have selectable text and use dynamic width/height to capture full content without cropping. Very long pages may span multiple PDF pages due to browser engine limits (~14,400px).
 
 ### Output
 
 The tool creates an `output` directory with:
-- Individual PDF files for each page (named `page-0001.pdf`, `page-0002.pdf`, etc.)
+- A `pages` subdirectory containing individual PDF files (named `page-0001.pdf`, `page-0002.pdf`, etc.)
 - A merged PDF file containing all pages (same name as input file: `<filename>.pdf`)
 
 Example output structure:
 ```
 output/
   phaser-docs/
-    page-0001.pdf
-    page-0002.pdf
-    page-0003.pdf
-    ...
+    pages/
+      page-0001.pdf
+      page-0002.pdf
+      page-0003.pdf
+      ...
     phaser-docs.pdf
 ```
 

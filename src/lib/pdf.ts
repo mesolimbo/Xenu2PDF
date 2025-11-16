@@ -15,8 +15,8 @@ export async function savePageToPDF(
   console.log(`[${index}] Navigating to: ${url}`);
 
   try {
-    // Use narrower viewport to fit more content vertically
-    await page.setViewportSize({ width: 1200, height: 1080 });
+    // Use wide viewport to allow content to render at natural width
+    await page.setViewportSize({ width: 1920, height: 1080 });
 
     // Navigate and wait for network to be idle
     await page.goto(url, { waitUntil: 'networkidle', timeout: 60000 });
@@ -71,23 +71,31 @@ export async function savePageToPDF(
       `
     });
 
-    // Get accurate content height
-    const contentHeight = await page.evaluate(() => {
-      return Math.max(
+    // Get accurate content dimensions
+    const { contentWidth, contentHeight } = await page.evaluate(() => {
+      const width = Math.max(
+        document.body.scrollWidth,
+        document.body.offsetWidth,
+        document.documentElement.clientWidth,
+        document.documentElement.scrollWidth,
+        document.documentElement.offsetWidth
+      );
+      const height = Math.max(
         document.body.scrollHeight,
         document.body.offsetHeight,
         document.documentElement.clientHeight,
         document.documentElement.scrollHeight,
         document.documentElement.offsetHeight
       );
+      return { contentWidth: width, contentHeight: height };
     });
 
-    console.log(`[${index}] Content height: ${contentHeight}px - Generating PDF with selectable text...`);
+    console.log(`[${index}] Content size: ${contentWidth}x${contentHeight}px - Generating PDF with selectable text...`);
 
     // Generate PDF with native text (selectable/copyable)
     await page.pdf({
       path: outputPath,
-      width: '1200px',
+      width: `${contentWidth}px`,
       height: `${contentHeight}px`,
       printBackground: true,
       margin: {

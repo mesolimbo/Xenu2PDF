@@ -1,6 +1,7 @@
-import { chromium, Browser, Page } from 'playwright';
+import { chromium, Browser } from 'playwright';
 import { readFileSync, existsSync, mkdirSync } from 'fs';
 import { join, basename } from 'path';
+import pLimit from 'p-limit';
 import { parseXenuFile } from './lib/parser';
 import { savePageToPDF, mergePDFs } from './lib/pdf';
 
@@ -22,8 +23,9 @@ async function main() {
 
   // Create output directory
   const outputDir = join(process.cwd(), 'output', basename(inputFile, '.tsv'));
-  if (!existsSync(outputDir)) {
-    mkdirSync(outputDir, { recursive: true });
+  const pagesDir = join(outputDir, 'pages');
+  if (!existsSync(pagesDir)) {
+    mkdirSync(pagesDir, { recursive: true });
   }
 
   console.log(`Output directory: ${outputDir}\n`);
@@ -41,15 +43,29 @@ async function main() {
   }
 
   const browser: Browser = await chromium.launch({ headless: true });
-  const page: Page = await browser.newPage();
+  const CONCURRENCY = 8;
+  const limit = pLimit(CONCURRENCY);
+
+  console.log(`Processing ${urls.length} URLs with ${CONCURRENCY} parallel workers...\n`);
 
   const pdfPaths: string[] = [];
 
   try {
-    for (let i = 0; i < urls.length; i++) {
-      const pdfPath = await savePageToPDF(page, urls[i], outputDir, i + 1);
-      pdfPaths.push(pdfPath);
-    }
+    // Process URLs in parallel with concurrency limit
+    const tasks = urls.map((url, index) =>
+      limit(async () => {
+        const page = await browser.newPage();
+        try {
+          const pdfPath = await savePageToPDF(page, url, pagesDir, index + 1);
+          pdfPaths[index] = pdfPath; // Preserve order
+          return pdfPath;
+        } finally {
+          await page.close();
+        }
+      })
+    );
+
+    await Promise.all(tasks);
   } finally {
     await browser.close();
   }
@@ -59,7 +75,7 @@ async function main() {
   await mergePDFs(pdfPaths, mergedPdfPath);
 
   console.log('\nDone!');
-  console.log(`Individual PDFs: ${outputDir}`);
+  console.log(`Individual PDFs: ${pagesDir}`);
   console.log(`Final PDF: ${mergedPdfPath}`);
 }
 
