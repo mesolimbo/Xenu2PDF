@@ -24,10 +24,11 @@ npm start .tmp/phaser-docs.csv
 
 This will:
 1. Parse the Xenu CSV file
-2. Extract unique URLs from the `LinkToPage` column
-3. Visit each URL using Playwright (headless Chromium)
-4. Save each page as a PDF
-5. Merge all PDFs into a single file
+2. Filter records to only include those with `LinkToPageStatusCode` of 200
+3. Extract unique URLs from the `OriginPage` column (preserving order)
+4. Visit each URL using Playwright (headless Chromium)
+5. Save each page as a PDF
+6. Merge all PDFs into a single file
 
 ### Output
 
@@ -59,6 +60,28 @@ Run in development mode:
 ```bash
 npm run dev <path-to-xenu-file.csv>
 ```
+
+### Testing
+
+Run the test suite:
+
+```bash
+npm test
+```
+
+Run tests in watch mode:
+
+```bash
+npm run test:watch
+```
+
+Generate coverage report:
+
+```bash
+npm run test:coverage
+```
+
+The tests are fast and don't fetch real content - they use mocks for file system operations, Playwright, and PDF generation.
 
 ## Requirements
 
