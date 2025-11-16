@@ -1,0 +1,26 @@
+{
+  "name": "xenu2pdf",
+  "version": "1.0.0",
+  "description": "Convert Xenu Link Sleuth reports to PDF",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "ts-node src/index.ts",
+    "dev": "ts-node src/index.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "csv-parse": "^6.1.0",
+    "pdf-lib": "^1.17.1",
+    "playwright": "^1.56.1"
+  }
+}
