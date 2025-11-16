@@ -8,18 +8,24 @@ Convert Xenu Link Sleuth reports to PDF. This tool reads a tab-separated CSV fil
 npm install
 ```
 
+## Preparation
+
+Use [Xenu Link Sleuth](https://xenus-link-sleuth.en.softonic.com/) to crawl a site. Be sure to configure it with the right options to crawl only the pages you need (e.g. No external crawls, include/exclude filters, limit crawl depth, etc.)
+
+When Xenu is done, use the `File > Export Page Map to TAB separated File...` option.
+
 ## Usage
 
-Run the tool with a Xenu CSV file as input:
+Run the tool with a Xenu TSV file as input:
 
 ```bash
-npm start <path-to-xenu-file.csv>
+npm start <path-to-xenu-file.tsv>
 ```
 
 ### Example
 
 ```bash
-npm start .tmp/phaser-docs.csv
+npm start .tmp/phaser-docs.tsv
 ```
 
 This will:
@@ -29,14 +35,17 @@ This will:
 4. Preserve the original order (no sorting)
 5. Visit each URL using Playwright (headless Chromium)
 6. Scroll through each page to load all content (handles lazy loading)
-7. Save each page as a PDF
-8. Merge all PDFs into a single file
+7. Inject CSS to minimize whitespace and margins
+8. Generate PDF with selectable/copyable text
+9. Merge all PDFs into a single file
+
+**Note**: PDFs have selectable text. Very long pages may span multiple PDF pages due to browser engine limits (~14,400px). Viewport optimized (1200px width) to minimize blank pages.
 
 ### Output
 
 The tool creates an `output` directory with:
 - Individual PDF files for each page (named `page-0001.pdf`, `page-0002.pdf`, etc.)
-- A merged PDF file containing all pages (`<filename>-merged.pdf`)
+- A merged PDF file containing all pages (same name as input file: `<filename>.pdf`)
 
 Example output structure:
 ```
@@ -46,7 +55,7 @@ output/
     page-0002.pdf
     page-0003.pdf
     ...
-    phaser-docs-merged.pdf
+    phaser-docs.pdf
 ```
 
 ## Development
@@ -89,10 +98,12 @@ The tests are fast and don't fetch real content - they use mocks for file system
 
 - Node.js 18 or higher
 - Chromium browser (automatically installed by Playwright)
+- [Xenu's Link Sleuth](https://xenus-link-sleuth.en.softonic.com/) ([FAQ](https://home.snafu.de/tilman/xenulink.html))
 
 ## Dependencies
 
 - **Playwright**: Browser automation for capturing web pages
 - **pdf-lib**: PDF manipulation and merging
-- **csv-parse**: Parsing Xenu CSV files
+- **csv-parse**: Parsing Xenu TSV files
 - **TypeScript**: Type-safe development
+

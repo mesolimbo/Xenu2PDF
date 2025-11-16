@@ -15,8 +15,8 @@ export async function savePageToPDF(
   console.log(`[${index}] Navigating to: ${url}`);
 
   try {
-    // Set a desktop viewport size to avoid mobile/tablet layouts
-    await page.setViewportSize({ width: 1920, height: 1080 });
+    // Use narrower viewport to fit more content vertically
+    await page.setViewportSize({ width: 1200, height: 1080 });
 
     // Navigate and wait for network to be idle
     await page.goto(url, { waitUntil: 'networkidle', timeout: 60000 });
@@ -34,12 +34,10 @@ export async function savePageToPDF(
     // Wait for network to be idle again after scrolling
     await page.waitForLoadState('networkidle');
 
-    console.log(`[${index}] Saving PDF: ${sanitizedFilename}`);
-
-    // Emulate screen media instead of print to get the same layout as browser
+    // Emulate screen media to get browser layout
     await page.emulateMedia({ media: 'screen' });
 
-    // Inject CSS to prevent page breaks and ensure single-page output
+    // Inject CSS to minimize whitespace and prevent orphaned elements
     await page.addStyleTag({
       content: `
         * {
@@ -47,36 +45,51 @@ export async function savePageToPDF(
           print-color-adjust: exact !important;
         }
         body, html {
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+        @page {
+          margin: 0;
+        }
+        /* Prevent footers and other elements from being orphaned */
+        footer, .footer, [role="contentinfo"],
+        nav, .nav, .navigation, [role="navigation"],
+        header, .header, [role="banner"] {
+          break-inside: avoid !important;
           page-break-inside: avoid !important;
+        }
+        /* Keep sections together */
+        section, article, .section, .content {
+          break-inside: avoid-page !important;
+          page-break-inside: avoid !important;
+        }
+        /* Prevent breaks after headings */
+        h1, h2, h3, h4, h5, h6 {
+          break-after: avoid !important;
           page-break-after: avoid !important;
-          page-break-before: avoid !important;
         }
       `
     });
 
-    // Get the full page height - use the larger of body or documentElement
-    const pageHeight = await page.evaluate(() => {
-      const body = document.body;
-      const html = document.documentElement;
+    // Get accurate content height
+    const contentHeight = await page.evaluate(() => {
       return Math.max(
-        body.scrollHeight,
-        body.offsetHeight,
-        html.clientHeight,
-        html.scrollHeight,
-        html.offsetHeight
+        document.body.scrollHeight,
+        document.body.offsetHeight,
+        document.documentElement.clientHeight,
+        document.documentElement.scrollHeight,
+        document.documentElement.offsetHeight
       );
     });
-    console.log(`[${index}] Page height: ${pageHeight}px`);
 
-    // Generate PDF with full page height as a single page
-    // Note: Playwright may still paginate based on default page size limits
+    console.log(`[${index}] Content height: ${contentHeight}px - Generating PDF with selectable text...`);
+
+    // Generate PDF with native text (selectable/copyable)
     await page.pdf({
       path: outputPath,
-      width: '1920px',
-      height: `${Math.min(pageHeight, 14400)}px`, // Cap at ~10 A4 pages to avoid issues
+      width: '1200px',
+      height: `${contentHeight}px`,
       printBackground: true,
-      preferCSSPageSize: false,
-      scale: 1,
       margin: {
         top: '0px',
         right: '0px',
@@ -85,10 +98,66 @@ export async function savePageToPDF(
       }
     });
 
+    // Post-process to remove blank trailing pages
+    console.log(`[${index}] Post-processing PDF to remove blank pages...`);
+    await removeBlankTrailingPages(outputPath);
+
     return outputPath;
   } catch (error) {
     console.error(`[${index}] Error processing ${url}:`, error);
     throw error;
+  }
+}
+
+async function removeBlankTrailingPages(pdfPath: string): Promise<void> {
+  try {
+    const pdfBytes = readFileSync(pdfPath);
+    const pdfDoc = await PDFDocument.load(pdfBytes);
+    const pageCount = pdfDoc.getPageCount();
+
+    if (pageCount <= 1) {
+      return; // Nothing to check
+    }
+
+    const lastPage = pdfDoc.getPage(pageCount - 1);
+    const secondLastPage = pdfDoc.getPage(pageCount - 2);
+
+    const lastPageHeight = lastPage.getHeight();
+    const secondLastPageHeight = secondLastPage.getHeight();
+
+    // Calculate what percentage the last page is of the previous page
+    const heightRatio = lastPageHeight / secondLastPageHeight;
+
+    const BLANK_THRESHOLD = 0.10;
+    const SAME_HEIGHT_THRESHOLD = 0.95; // If within 95% of same height
+
+    let shouldRemove = false;
+    let reason = '';
+
+    // Case 1: Last page is tiny compared to previous (< 10% height)
+    if (heightRatio < BLANK_THRESHOLD) {
+      shouldRemove = true;
+      reason = `only ${(heightRatio * 100).toFixed(1)}% of previous page height`;
+    }
+    // Case 2: Pages are same/similar height (pagination artifact)
+    // This happens when Chromium splits content across equal-sized pages
+    else if (heightRatio >= SAME_HEIGHT_THRESHOLD) {
+      shouldRemove = true;
+      reason = `same height as previous page (${(heightRatio * 100).toFixed(1)}% - likely pagination artifact)`;
+    }
+
+    if (shouldRemove) {
+      console.log(`   Removing last page - ${reason}`);
+      pdfDoc.removePage(pageCount - 1);
+
+      const modifiedPdfBytes = await pdfDoc.save();
+      writeFileSync(pdfPath, modifiedPdfBytes);
+    } else {
+      console.log(`   Keeping last page - ${(heightRatio * 100).toFixed(1)}% of previous page height`);
+    }
+  } catch (error) {
+    console.error(`   Warning: Could not post-process PDF: ${error}`);
+    // Don't fail the whole process if post-processing fails
   }
 }
 

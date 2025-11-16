@@ -8,8 +8,8 @@ async function main() {
   const args = process.argv.slice(2);
 
   if (args.length === 0) {
-    console.error('Usage: npm start <xenu-file.csv>');
-    console.error('Example: npm start .tmp/phaser-docs.csv');
+    console.error('Usage: npm start <xenu-file.tsv>');
+    console.error('Example: npm start .tmp/phaser-docs.tsv');
     process.exit(1);
   }
 
@@ -21,15 +21,15 @@ async function main() {
   }
 
   // Create output directory
-  const outputDir = join(process.cwd(), 'output', basename(inputFile, '.csv'));
+  const outputDir = join(process.cwd(), 'output', basename(inputFile, '.tsv'));
   if (!existsSync(outputDir)) {
     mkdirSync(outputDir, { recursive: true });
   }
 
   console.log(`Output directory: ${outputDir}\n`);
 
-  // Parse Xenu file
-  console.log(`Reading Xenu file: ${inputFile}`);
+  // Parse Xenu TSV file
+  console.log(`Reading Xenu TSV file: ${inputFile}`);
   const fileContent = readFileSync(inputFile, 'utf-8');
   const urls = parseXenuFile(fileContent);
 
@@ -55,12 +55,12 @@ async function main() {
   }
 
   // Merge all PDFs
-  const mergedPdfPath = join(outputDir, `${basename(inputFile, '.csv')}-merged.pdf`);
+  const mergedPdfPath = join(outputDir, `${basename(inputFile, '.tsv')}.pdf`);
   await mergePDFs(pdfPaths, mergedPdfPath);
 
   console.log('\nDone!');
   console.log(`Individual PDFs: ${outputDir}`);
-  console.log(`Merged PDF: ${mergedPdfPath}`);
+  console.log(`Final PDF: ${mergedPdfPath}`);
 }
 
 main().catch(console.error);
