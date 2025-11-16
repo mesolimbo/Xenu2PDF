@@ -28,7 +28,8 @@ export function filterByStatusCode(records: XenuRecord[], statusCode: string = '
 
 export function extractUniqueOriginPages(records: XenuRecord[]): string[] {
   const urls = [...new Set(records.map(r => r.OriginPage))].filter(Boolean);
-  return urls;
+  // Sort URLs alphabetically for consistent ordering
+  return urls.sort();
 }
 
 export function parseXenuFile(content: string): string[] {

@@ -105,13 +105,26 @@ https://example.com/page2\thttps://example.com/link2\t200\tok\t"Quoted Title"\t\
       ]);
     });
 
-    it('should preserve order of first occurrence', () => {
+    it('should sort URLs alphabetically', () => {
       const urls = extractUniqueOriginPages(records);
 
-      // page1 appears first (index 0), then page2 (index 1), then page3 (index 3)
+      // URLs should be sorted alphabetically
       expect(urls[0]).toBe('https://example.com/page1');
       expect(urls[1]).toBe('https://example.com/page2');
       expect(urls[2]).toBe('https://example.com/page3');
+
+      // Verify actual sorting behavior with different order
+      const unsortedRecords = [
+        { ...records[0], OriginPage: 'https://example.com/zebra' },
+        { ...records[1], OriginPage: 'https://example.com/alpha' },
+        { ...records[2], OriginPage: 'https://example.com/beta' },
+      ];
+      const sortedUrls = extractUniqueOriginPages(unsortedRecords);
+      expect(sortedUrls).toEqual([
+        'https://example.com/alpha',
+        'https://example.com/beta',
+        'https://example.com/zebra',
+      ]);
     });
 
     it('should filter out empty values', () => {
