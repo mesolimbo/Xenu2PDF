@@ -37,6 +37,18 @@ https://example.com/page1\thttps://example.com/link5\t200\tok\tLink 5\t\tPage 1`
 
       expect(records).toHaveLength(0);
     });
+
+    it('should handle quotes in TSV content without errors', () => {
+      const contentWithQuotes = `OriginPage\tLinkToPage\tLinkToPageStatusCode\tLinkToPageStatusText\tLinkToPageTitle\tOriginPageDate\tOriginPageTitle
+https://example.com/page1\thttps://example.com/link1\t200\tok\tLink 1\t\t<span title="Page Title">Page 1</span>
+https://example.com/page2\thttps://example.com/link2\t200\tok\t"Quoted Title"\t\tPage 2`;
+
+      const records = parseXenuContent(contentWithQuotes);
+
+      expect(records).toHaveLength(2);
+      expect(records[0].OriginPageTitle).toBe('<span title="Page Title">Page 1</span>');
+      expect(records[1].LinkToPageTitle).toBe('"Quoted Title"');
+    });
   });
 
   describe('filterByStatusCode', () => {

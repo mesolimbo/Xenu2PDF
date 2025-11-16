@@ -15,6 +15,8 @@ export function parseXenuContent(content: string): XenuRecord[] {
     columns: true,
     delimiter: '\t',
     skip_empty_lines: true,
+    quote: false, // Disable quote parsing for raw TSV files
+    relax_quotes: true, // Don't treat quotes as special characters
   }) as XenuRecord[];
 
   return records;
